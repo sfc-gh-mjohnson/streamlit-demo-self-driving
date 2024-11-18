@@ -34,7 +34,7 @@ def main():
     # Once we have the dependencies, add a selector for the app mode on the sidebar.
     st.sidebar.title("What to do")
     app_mode = st.sidebar.selectbox("Choose the app mode",
-        ["Show instructions", "Run the app", "Show the source code"])
+        ["Show instructions", "Run the app", "Show the source code", "Give Feedback"])
     if app_mode == "Show instructions":
         st.sidebar.success('To continue select "Run the app".')
     elif app_mode == "Show the source code":
@@ -43,6 +43,9 @@ def main():
     elif app_mode == "Run the app":
         readme_text.empty()
         run_the_app()
+    elif app_mode=="Give Feedback":
+        readme_text.empty()
+        snowflake_feedback()
 
 # This file downloader demonstrates Streamlit animation.
 def download_file(file_path):
@@ -134,6 +137,11 @@ def run_the_app():
     yolo_boxes = yolo_v3(image, confidence_threshold, overlap_threshold)
     draw_image_with_boxes(image, yolo_boxes, "Real-time Computer Vision",
         "**YOLO v3 Model** (overlap `%3.1f`) (confidence `%3.1f`)" % (overlap_threshold, confidence_threshold))
+
+def snowflake_feedback():
+        
+    st.title("Submit Feedback")
+
 
 # This sidebar UI is a little search engine to find certain object types.
 def frame_selector_ui(summary):
