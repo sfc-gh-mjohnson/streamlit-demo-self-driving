@@ -21,6 +21,7 @@ import altair as alt
 import pandas as pd
 import numpy as np
 import os, urllib, cv2
+from datetime import date
 
 # Streamlit encourages well-structured code, like starting execution in a main() function.
 def main():
@@ -141,6 +142,145 @@ def run_the_app():
 def snowflake_feedback():
         
     st.title("Submit Feedback")
+
+
+
+    # Get the current Snowflake session
+    conn = st.connection("snowflake")
+    session = conn.session()
+
+    # Define table name and structure
+    table_name = "TUTORIAL_DB.NORQUEST.MY_TABLE"
+    table_schema = """
+        ID FLOAT,
+        NAME VARCHAR(16777216),
+        IMAGE FLOAT,
+        DATE DATE,
+        COMMENT VARCHAR(16777216)
+    """
+
+    # Create table if it doesn't exist
+    create_table_query = f"""
+    CREATE TABLE IF NOT EXISTS {table_name} (
+        {table_schema}
+    )
+    """
+    session.sql(create_table_query).collect()
+
+    # Specify your Snowflake table name
+    snowflake_table_name = "TUTORIAL_DB.NORQUEST.MY_TABLE"
+
+    # Function to load data from Snowflake
+    @st.cache_data(ttl=600)
+    def load_data():
+        df = session.table(snowflake_table_name).to_pandas()
+        df['DATE'] = pd.to_datetime(df['DATE'], errors='coerce')
+        return df
+
+    # Function to save data to Snowflake
+    def save_data(df):
+        # Ensure 'ID' is a column, not the index
+        if 'ID' not in df.columns and df.index.name == 'ID':
+            df = df.reset_index()
+        
+        # Convert datetime back to string for Snowflake
+        df['DATE'] = df['DATE'].dt.strftime('%Y-%m-%d')
+        
+        # Convert the pandas DataFrame to a Snowpark DataFrame
+        snowpark_df = session.create_dataframe(df)
+        
+        # Write the data back to Snowflake, overwriting the existing table
+        snowpark_df.write.mode("overwrite").save_as_table(table_name)
+
+    # Load initial data
+    df = load_data()
+
+    # Create an editable dataframe using st.data_editor
+        # New section for adding data
+    st.header("Submit Feedback on Predictions")
+
+    # Input fields for new data
+    new_id = st.number_input("ID", min_value=0, step=1, value=int(df['ID'].max()) + 1 if len(df) > 0 else 0)
+    new_name = st.text_input("Name")
+    new_age = st.number_input("Image", min_value=0, max_value=150, step=1)
+    new_date = st.date_input("Date", min_value=date(1900, 1, 1), max_value=date(2100, 12, 31))
+    new_comment = st.text_input("Comment")
+
+    # Button to add new data
+    if st.button("Add New Data"):
+        try:
+            # Create a new row
+            new_row = pd.DataFrame({
+                'ID': [new_id],
+                'NAME': [new_name],
+                'IMAGE': [new_age],
+                'DATE': [new_date],
+                'COMMENT': [new_comment],
+            })
+            
+            # Append the new row to the existing dataframe
+            updated_df = pd.concat([df, new_row], ignore_index=True)
+            
+            # Save the updated dataframe
+            save_data(updated_df)
+            
+            st.success("New data added successfully!")
+            # Refresh the data
+            st.rerun()
+        except Exception as e:
+            st.error(f"Error adding new data: {str(e)}")
+
+
+    st.header("Feedback Overview")
+
+    edited_df = st.data_editor(
+        df, 
+        num_rows="dynamic",
+        column_config={
+            "ID": st.column_config.NumberColumn(
+                "ID",
+                help="Unique identifier for each row",
+                min_value=0,
+                step=1,
+                format="%d"
+            ),
+            "NAME": st.column_config.TextColumn(
+                "Name",
+                max_chars=16777216,
+                validate="^[a-zA-Z0-9 ]*$"
+            ),
+            "IMAGE": st.column_config.NumberColumn(
+                "Image Number",
+                help="Image Number",
+                min_value=0,
+                max_value=150,
+                step=1,
+                format="%d"
+            ),
+            "DATE": st.column_config.DateColumn(
+                "Date",
+                min_value=date(2024, 1, 1),
+                max_value=date(2100, 12, 31),
+                format="YYYY-MM-DD",
+                step=1
+            ),
+            "COMMENT": st.column_config.TextColumn(
+                "Comment",
+                max_chars=16777216,
+                validate="^[a-zA-Z0-9 ]*$"
+            )
+        },
+        hide_index=True
+    )
+
+    # Add a submit button to save changes
+    if st.button("Save Changes"):
+        try:
+            # Save the changes
+            save_data(edited_df)
+            st.success("Changes saved successfully!")
+        except Exception as e:
+            st.error(f"Error saving changes: {str(e)}")
 
 
 # This sidebar UI is a little search engine to find certain object types.
@@ -300,3 +440,4 @@ EXTERNAL_DEPENDENCIES = {
 
 if __name__ == "__main__":
     main()
+
