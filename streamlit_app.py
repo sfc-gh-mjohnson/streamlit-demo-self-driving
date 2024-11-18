@@ -86,12 +86,12 @@ def download_file(file_path):
 def run_the_app():
     # To make Streamlit fast, st.cache allows us to reuse computation across runs.
     # In this common pattern, we download data from an endpoint only once.
-    @st.experimental_memo
+    @st.cache_data
     def load_metadata(url):
         return pd.read_csv(url)
 
     # This function uses some Pandas magic to summarize the metadata Dataframe.
-    @st.experimental_memo
+    @st.cache_data
     def create_summary(metadata):
         one_hot_encoded = pd.get_dummies(metadata[["frame", "label"]], columns=["label"])
         summary = one_hot_encoded.groupby(["frame"]).sum().rename(columns={
@@ -164,7 +164,7 @@ def frame_selector_ui(summary):
     return selected_frame_index, selected_frame
 
 # Select frames based on the selection in the sidebar
-@st.cache(hash_funcs={np.ufunc: str})
+@st.cache_data(hash_funcs={np.ufunc: str})
 def get_selected_frames(summary, label, min_elts, max_elts):
     return summary[np.logical_and(summary[label] >= min_elts, summary[label] <= max_elts)].index
 
@@ -193,10 +193,10 @@ def draw_image_with_boxes(image, boxes, header, description):
     # Draw the header and image.
     st.subheader(header)
     st.markdown(description)
-    st.image(image_with_boxes.astype(np.uint8), use_column_width=True)
+    st.image(image_with_boxes.astype(np.uint8), use_container_width=True)
 
 # Download a single file and make its content available as a string.
-@st.experimental_singleton(show_spinner=False)
+@st.cache_resource(show_spinner=False)
 def get_file_content_as_string(path):
     url = 'https://raw.githubusercontent.com/streamlit/demo-self-driving/master/' + path
     response = urllib.request.urlopen(url)
@@ -204,7 +204,7 @@ def get_file_content_as_string(path):
 
 # This function loads an image from Streamlit public repo on S3. We use st.cache on this
 # function as well, so we can reuse the images across runs.
-@st.experimental_memo(show_spinner=False)
+@st.cache_data(show_spinner=False)
 def load_image(url):
     with urllib.request.urlopen(url) as response:
         image = np.asarray(bytearray(response.read()), dtype="uint8")
@@ -215,7 +215,7 @@ def load_image(url):
 # Run the YOLO model to detect objects.
 def yolo_v3(image, confidence_threshold, overlap_threshold):
     # Load the network. Because this is cached it will only happen once.
-    @st.cache(allow_output_mutation=True)
+    @st.cache_resource
     def load_network(config_path, weights_path):
         net = cv2.dnn.readNetFromDarknet(config_path, weights_path)
         output_layer_names = net.getLayerNames()
