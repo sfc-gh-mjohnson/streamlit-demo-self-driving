@@ -7,8 +7,8 @@ verify_ssl = true
 allow_prereleases = true
  
 [packages]
-streamlit = "1.9.2"
-opencv-python-headless = ">=4.5"
+streamlit = "1.40.1"
+opencv-python-headless = ">=4.10"
 # backports.weakref = "*"
 # opencv-python = "*"
 

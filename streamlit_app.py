@@ -84,7 +84,7 @@ def download_file(file_path):
 
 # This is the main app app itself, which appears when the user selects "Run the app".
 def run_the_app():
-    # To make Streamlit fast, st.cache allows us to reuse computation across runs.
+    # To make Streamlit fast, st.cache_data allows us to reuse computation across runs.
     # In this common pattern, we download data from an endpoint only once.
     @st.cache_data
     def load_metadata(url):
