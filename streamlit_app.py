@@ -193,7 +193,7 @@ def draw_image_with_boxes(image, boxes, header, description):
     # Draw the header and image.
     st.subheader(header)
     st.markdown(description)
-    st.image(image_with_boxes.astype(np.uint8), use_column_width=True)
+    st.image(image_with_boxes.astype(np.uint8), use_container_width=True)
 
 # Download a single file and make its content available as a string.
 @st.cache_resource(show_spinner=False)
@@ -215,7 +215,7 @@ def load_image(url):
 # Run the YOLO model to detect objects.
 def yolo_v3(image, confidence_threshold, overlap_threshold):
     # Load the network. Because this is cached it will only happen once.
-    @st.cache_data(allow_output_mutation=True)
+    @st.cache_resource
     def load_network(config_path, weights_path):
         net = cv2.dnn.readNetFromDarknet(config_path, weights_path)
         output_layer_names = net.getLayerNames()
